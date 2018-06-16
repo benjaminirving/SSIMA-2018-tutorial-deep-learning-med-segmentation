@@ -1,0 +1,1 @@
+pipenv install ipython jupyter tensorflow-gpu keras numpy scipy scikit-image scikit-image matplotlib
