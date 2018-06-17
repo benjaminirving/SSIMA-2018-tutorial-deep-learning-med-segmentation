@@ -15,13 +15,13 @@ img_rows = 512
 crop1 = int((img_rows_orig-img_rows)/2)
 crop2 = int((img_cols_orig-img_cols)/2)
 
-data_path = '/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/training'
+data_path = '/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/'
 
 
-def create_train_data():
+def create_data(path, name):
 
-    image_path = data_path + '/images'
-    mask_path  = data_path + '/1st_manual'
+    image_path = path + 'images'
+    mask_path =  path + '/1st_manual'
 
     images = os.listdir(image_path)
     total = len(images)
@@ -55,49 +55,13 @@ def create_train_data():
     plt.contour(np.squeeze(imgs_mask[2]))
     plt.show()
 
-    np.savez('imgs_train.npz', imgs=imgs, imgs_mask=imgs_mask)
+    np.savez(name, imgs=imgs, imgs_mask=imgs_mask)
 
-    print('Saving to .npy files done.')
-
-
-def create_test_data():
-    train_data_path = os.path.join(data_path, 'test')
-    images = os.listdir(train_data_path)
-    total = len(images)
-
-    imgs = np.ndarray((total, img_rows, img_cols), dtype=np.uint8)
-    imgs_id = np.ndarray((total, ), dtype=np.int32)
-
-    i = 0
-    print('-'*30)
-    print('Creating test images...')
-    print('-'*30)
-    for image_name in images:
-        img_id = int(image_name.split('.')[0])
-        img = imread(os.path.join(train_data_path, image_name), as_grey=False)
-
-        img = np.array([img])
-
-        imgs[i] = img
-        imgs_id[i] = img_id
-
-        if i % 100 == 0:
-            print('Done: {0}/{1} images'.format(i, total))
-        i += 1
-
-    print('Loading done.')
-
-    np.save('imgs_test.npy', imgs)
-    np.save('imgs_id_test.npy', imgs_id)
-    print('Saving to .npy files done.')
-
-
-def load_test_data():
-    imgs_test = np.load('imgs_test.npy')
-    imgs_id = np.load('imgs_id_test.npy')
-    return imgs_test, imgs_id
+    print('Saving to .npz files done.')
 
 
 if __name__ == '__main__':
-    create_train_data()
-    # create_test_data()
+
+    create_data(data_path + 'training/', data_path + 'imgs_train.npz')
+    create_data(data_path + 'test/', data_path + 'imgs_test.npz')
+

@@ -3,6 +3,7 @@ import os
 from skimage.io import imsave
 import numpy as np
 from keras.models import Model
+from keras.callbacks import ModelCheckpoint
 from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, UpSampling2D
 from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
@@ -16,6 +17,8 @@ img_cols = 512
 img_rows = 512
 
 smooth = 1.
+
+model_dir = '/home/ben/Code/tutorials/Unet_segmentation_SSIMA/models/'
 
 
 def dice_coef(y_true, y_pred):
@@ -71,12 +74,12 @@ def get_unet():
 
     model = Model(inputs=[inputs], outputs=[conv10])
 
-    model.compile(optimizer=Adam(lr=1e-4), loss=dice_coef_loss, metrics=[dice_coef])
+    model.compile(optimizer=Adam(lr=5e-5), loss=dice_coef_loss, metrics=[dice_coef])
 
     return model
 
 
-def train_and_predict():
+def train():
 
     options = {}
     options['augmentation'] = True
@@ -88,11 +91,15 @@ def train_and_predict():
     print('Loading and preprocessing train data...')
     print('-'*30)
 
-    train_data = np.load('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/retseg/imgs_train.npz')
+    train_data = np.load('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/imgs_train.npz')
     imgs_train, imgs_mask_train = train_data['imgs'], train_data['imgs_mask']
 
-    # imgs_train = preprocess(imgs_train)
-    # imgs_mask_train = preprocess(imgs_mask_train)
+    img_test = imgs_train[-1]
+    img_mask_test = imgs_mask_train[-1]
+    img_test = np.expand_dims(img_test, axis=0)
+    img_mask_test = np.expand_dims(img_mask_test, axis=0)
+    imgs_train = np.delete(imgs_train, -1, 0)
+    imgs_mask_train = np.delete(imgs_mask_train, -1, 0)
 
     imgs_train = imgs_train.astype('float32')
     imgs_train = imgs_train / imgs_train.max()
@@ -104,7 +111,7 @@ def train_and_predict():
     # imgs_train /= std
 
     imgs_mask_train = imgs_mask_train.astype('float32')
-    imgs_mask_train = imgs_mask_train > 0
+    imgs_mask_train = imgs_mask_train > 0.5
 
     plt.figure()
     plt.imshow(np.squeeze(imgs_train[2]))
@@ -113,7 +120,6 @@ def train_and_predict():
     plt.imshow(np.squeeze(imgs_train[2]))
     plt.contour(np.squeeze(imgs_mask_train[2]))
     plt.show()
-
 
     print('-'*30)
     print('Creating and compiling model...')
@@ -128,12 +134,16 @@ def train_and_predict():
 
         # Standard fitting approach
 
+        model_checkpoint = ModelCheckpoint('model2000.h5', monitor='val_loss', save_best_only=True)
+
         model.fit(imgs_train, imgs_mask_train,
                   batch_size=batch_size,
                   nb_epoch=epochs,
                   verbose=1,
                   shuffle=True,
-                  validation_split=0.2)
+                  validation_split=0.05,
+                  callbacks=[model_checkpoint])
+
     else:
 
         # Data augmentation
@@ -170,7 +180,7 @@ def train_and_predict():
             batches = 0
             for x_batch, y_batch in gen1:
                 y_batch = y_batch > 0.5
-                model.fit(x_batch, y_batch, verbose=1)
+                model.fit(x_batch, y_batch, verbose=1, epochs=1)
 
                 # plt.figure()
                 # plt.imshow(np.squeeze(x_batch[0]))
@@ -184,55 +194,85 @@ def train_and_predict():
                     # the generator loops indefinitely
                     break
 
-            if e % 50 == 0:
+            if e % 100 == 0:
 
-                pred1 = model.predict(x_batch[:2])
+                # Show a single case
+
+                pred1 = model.predict(img_test)
+
                 plt.figure()
-                plt.imshow(np.squeeze(x_batch[0]))
+                plt.imshow(np.squeeze(img_test))
+
                 plt.figure()
-                plt.imshow(np.squeeze(pred1[0]))
+                plt.imshow(np.squeeze(pred1))
+
+                plt.figure()
+                plt.imshow(np.squeeze(img_mask_test))
+
                 plt.show()
-                plt.imshow(np.squeeze(y_batch[0]))
-                plt.show()
+
+                model.save_weights(model_dir + "modelaug{}.h5".format(e))
 
 
-    # TODO: with augmentation
-    # TODO: save after every few epochs
-    # TODO: compare results with and without augmentation
-    # TODO: Look at what each layer has learnt
+def dice_coeff_standard(yt, yp):
 
-    print('-'*30)
+    yt = yt > 0.5
+    yp = yp > 0.5
+
+    return 2*np.sum(np.logical_and(yt, yp)) / (np.sum(yt) + np.sum(yp))
+
+
+def predict():
+
+    model = get_unet()
+
+    print('- ' * 30)
     print('Loading and preprocessing test data...')
-    print('-'*30)
-    # imgs_test, imgs_id_test = load_test_data()
-    # imgs_test = preprocess(imgs_test)
+    print('- ' * 30)
 
-    # imgs_test = imgs_test.astype('float32')
+    test_data = np.load('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/imgs_test.npz')
+    imgs_test, imgs_mask_test = test_data['imgs'], test_data['imgs_mask']
+
+    imgs_test = imgs_test.astype('float32')
+    imgs_test = imgs_test / imgs_test.max()
     # imgs_test -= mean
     # imgs_test /= std
 
-    print('-'*30)
+    print('- ' * 30)
     print('Loading saved weights...')
-    print('-'*30)
-    model.load_weights('weights.h5')
+    print('- ' * 30)
+    model.load_weights('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/models/modelaug2000.h5')
 
-    print('-'*30)
+    print('- ' * 30)
     print('Predicting masks on test data...')
-    print('-'*30)
-    imgs_mask_test = model.predict(imgs_test, verbose=1)
+    print('- ' * 30)
+
+    imgs_mask_pred = model.predict(imgs_test, verbose=1)
+
     np.save('imgs_mask_test.npy', imgs_mask_test)
 
-    print('-' * 30)
-    print('Saving predicted masks to files...')
-    print('-' * 30)
+    dice_all = []
 
-    pred_dir = 'preds'
-    if not os.path.exists(pred_dir):
-        os.mkdir(pred_dir)
-    for image, image_id in zip(imgs_mask_test, imgs_id_test):
-        image = (image[:, :, 0] * 255.).astype(np.uint8)
-        imsave(os.path.join(pred_dir, str(image_id) + '_pred.png'), image)
+    for impred, im, imtest in zip(imgs_mask_pred, imgs_test, imgs_mask_test):
+
+        dice_all.append(dice_coeff_standard(imtest, impred))
+
+        plt.figure()
+        plt.title("Ground truth and prediction for test set. Dice {}".format(dice_all[-1]))
+
+        plt.subplot(1, 3, 1)
+        plt.imshow(np.squeeze(im))
+        plt.subplot(1, 3, 2)
+        plt.imshow(np.squeeze(imtest))
+        plt.subplot(1, 3, 3)
+        plt.imshow(np.squeeze(impred))
+
+    plt.show()
+
+    print("Mean dice: ", np.mean(dice_all))
 
 
 if __name__ == '__main__':
-    train_and_predict()
+    train()
+    # predict()
+
