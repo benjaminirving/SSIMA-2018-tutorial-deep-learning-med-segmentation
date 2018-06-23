@@ -74,7 +74,8 @@ def get_unet():
 
     model = Model(inputs=[inputs], outputs=[conv10])
 
-    model.compile(optimizer=Adam(lr=5e-5), loss=dice_coef_loss, metrics=[dice_coef])
+    # TODO: temporary switch from 5e-5 to 1e-5
+    model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss, metrics=[dice_coef])
 
     return model
 
@@ -82,9 +83,9 @@ def get_unet():
 def train():
 
     options = {}
-    options['augmentation'] = True
+    options['augmentation'] = False
 
-    epochs = 4000
+    epochs = 4001
     batch_size = 5
 
     print('-'*30)
@@ -134,14 +135,14 @@ def train():
 
         # Standard fitting approach
 
-        model_checkpoint = ModelCheckpoint('model2000.h5', monitor='val_loss', save_best_only=True)
+        model_checkpoint = ModelCheckpoint('model4000.h5', monitor='val_loss', save_best_only=True)
 
         model.fit(imgs_train, imgs_mask_train,
                   batch_size=batch_size,
                   nb_epoch=epochs,
                   verbose=1,
                   shuffle=True,
-                  validation_split=0.05,
+                  # validation_split=0.05,
                   callbacks=[model_checkpoint])
 
     else:
@@ -241,7 +242,7 @@ def predict():
     print('- ' * 30)
     print('Loading saved weights...')
     print('- ' * 30)
-    model.load_weights('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/models/modelaug2000.h5')
+    model.load_weights('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/models/modelaug3900.h5')
 
     print('- ' * 30)
     print('Predicting masks on test data...')
