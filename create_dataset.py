@@ -15,7 +15,7 @@ img_rows = 512
 crop1 = int((img_rows_orig-img_rows)/2)
 crop2 = int((img_cols_orig-img_cols)/2)
 
-data_path = '/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/'
+data_path = 'data/DRIVE/'
 
 
 def create_data(path, name):

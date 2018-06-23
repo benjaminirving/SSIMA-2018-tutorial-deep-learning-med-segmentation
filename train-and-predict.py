@@ -18,7 +18,7 @@ img_rows = 512
 
 smooth = 1.
 
-model_dir = '/home/ben/Code/tutorials/Unet_segmentation_SSIMA/models/'
+model_dir = 'models/'
 
 
 def dice_coef(y_true, y_pred):
@@ -74,8 +74,7 @@ def get_unet():
 
     model = Model(inputs=[inputs], outputs=[conv10])
 
-    # TODO: temporary switch from 5e-5 to 1e-5
-    model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss, metrics=[dice_coef])
+    model.compile(optimizer=Adam(lr=5e-5), loss=dice_coef_loss, metrics=[dice_coef])
 
     return model
 
@@ -83,7 +82,7 @@ def get_unet():
 def train():
 
     options = {}
-    options['augmentation'] = False
+    options['augmentation'] = True
 
     epochs = 4001
     batch_size = 5
@@ -92,7 +91,7 @@ def train():
     print('Loading and preprocessing train data...')
     print('-'*30)
 
-    train_data = np.load('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/imgs_train.npz')
+    train_data = np.load('data/DRIVE/imgs_train.npz')
     imgs_train, imgs_mask_train = train_data['imgs'], train_data['imgs_mask']
 
     img_test = imgs_train[-1]
@@ -113,14 +112,6 @@ def train():
 
     imgs_mask_train = imgs_mask_train.astype('float32')
     imgs_mask_train = imgs_mask_train > 0.5
-
-    plt.figure()
-    plt.imshow(np.squeeze(imgs_train[2]))
-
-    plt.figure()
-    plt.imshow(np.squeeze(imgs_train[2]))
-    plt.contour(np.squeeze(imgs_mask_train[2]))
-    plt.show()
 
     print('-'*30)
     print('Creating and compiling model...')
@@ -195,22 +186,23 @@ def train():
                     # the generator loops indefinitely
                     break
 
-            if e % 100 == 0:
+            if e % 400 == 0:
 
                 # Show a single case
 
                 pred1 = model.predict(img_test)
 
                 plt.figure()
+                plt.subplot(1, 3, 1)
+                plt.title('Example')
                 plt.imshow(np.squeeze(img_test))
-
-                plt.figure()
+                plt.subplot(1, 3, 2)
+                plt.title('Model Epoch {}'.format(e))
                 plt.imshow(np.squeeze(pred1))
-
-                plt.figure()
+                plt.subplot(1, 3, 3)
+                plt.title('Ground truth')
                 plt.imshow(np.squeeze(img_mask_test))
-
-                plt.show()
+                plt.savefig('img/training{}.png'.format(e))
 
                 model.save_weights(model_dir + "modelaug{}.h5".format(e))
 
@@ -225,13 +217,23 @@ def dice_coeff_standard(yt, yp):
 
 def predict():
 
+    """
+
+    Automatically segment the Retina using a pretrained model
+
+    :return:
+    """
+    print('- ' * 30)
+    print('Get the model structure...')
+    print('- ' * 30)
+
     model = get_unet()
 
     print('- ' * 30)
     print('Loading and preprocessing test data...')
     print('- ' * 30)
 
-    test_data = np.load('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/data/DRIVE/imgs_test.npz')
+    test_data = np.load('data/DRIVE/imgs_test.npz')
     imgs_test, imgs_mask_test = test_data['imgs'], test_data['imgs_mask']
 
     imgs_test = imgs_test.astype('float32')
@@ -242,7 +244,7 @@ def predict():
     print('- ' * 30)
     print('Loading saved weights...')
     print('- ' * 30)
-    model.load_weights('/home/ben/Code/tutorials/Unet_segmentation_SSIMA/models/modelaug3900.h5')
+    model.load_weights('models/modelaug3900.h5')
 
     print('- ' * 30)
     print('Predicting masks on test data...')
@@ -254,7 +256,7 @@ def predict():
 
     dice_all = []
 
-    for impred, im, imtest in zip(imgs_mask_pred, imgs_test, imgs_mask_test):
+    for impred, im, imtest in zip(imgs_mask_pred[:5], imgs_test[:5], imgs_mask_test[:5]):
 
         dice_all.append(dice_coeff_standard(imtest, impred))
 
@@ -262,10 +264,13 @@ def predict():
         plt.title("Ground truth and prediction for test set. Dice {}".format(dice_all[-1]))
 
         plt.subplot(1, 3, 1)
+        plt.title('Image')
         plt.imshow(np.squeeze(im))
         plt.subplot(1, 3, 2)
+        plt.title('Ground truth')
         plt.imshow(np.squeeze(imtest))
         plt.subplot(1, 3, 3)
+        plt.title('Prediction')
         plt.imshow(np.squeeze(impred))
 
     plt.show()
