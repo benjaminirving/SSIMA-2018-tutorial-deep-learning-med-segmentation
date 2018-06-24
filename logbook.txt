@@ -1,2 +1,0 @@
-pipenv install ipython jupyter tensorflow-gpu keras numpy scipy scikit-image scikit-image matplotlib
-https://github.com/jocicmarko/ultrasound-nerve-segmentation
