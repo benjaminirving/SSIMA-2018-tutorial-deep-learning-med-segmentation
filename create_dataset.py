@@ -51,9 +51,9 @@ def create_data(path, name):
     print('Loading done.')
 
     plt.figure()
+    plt.title('Example image without contour')
     plt.imshow(np.squeeze(imgs[2]))
     plt.contour(np.squeeze(imgs_mask[2]))
-    plt.show()
 
     np.savez(name, imgs=imgs, imgs_mask=imgs_mask)
 
@@ -64,4 +64,6 @@ if __name__ == '__main__':
 
     create_data(data_path + 'training/', data_path + 'imgs_train.npz')
     create_data(data_path + 'test/', data_path + 'imgs_test.npz')
+    plt.show()
+
 
