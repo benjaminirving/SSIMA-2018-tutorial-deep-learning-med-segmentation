@@ -10,8 +10,6 @@ Tutorial 1 - Setup
 
 Tutorial 2 - Retina vessel segmentation  
 
-Tutorial 3 - What's going on?
-
 # Code
 
 Convert the dataset:  
