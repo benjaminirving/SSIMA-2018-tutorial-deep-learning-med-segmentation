@@ -6,6 +6,8 @@ Benjamin Irving, 2018
 
 ## Tutorials
 
+Jupyter notebooks:
+
 Tutorial 1 - Setup  
 
 Tutorial 2 - Retina vessel segmentation  
