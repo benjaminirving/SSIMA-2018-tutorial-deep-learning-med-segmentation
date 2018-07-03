@@ -6,7 +6,7 @@ Benjamin Irving, 2018
 
 ## Tutorials
 
-Jupyter notebooks:
+See the Jupyter notebooks for setup and segmentation tutorial:
 
 Tutorial 1 - Setup  
 
